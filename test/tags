@@ -1,0 +1,44 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CURRENT_STATUS_DESTROY	videowall/player_vw_test.c	/^	CURRENT_STATUS_DESTROY,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_FILENAME	videowall/player_vw_test.c	/^	CURRENT_STATUS_FILENAME,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_HANDLE_NUM	videowall/player_vw_test.c	/^	CURRENT_STATUS_HANDLE_NUM,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_LOOP	videowall/player_vw_test.c	/^	CURRENT_STATUS_LOOP,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_MAINMENU	videowall/player_vw_test.c	/^	CURRENT_STATUS_MAINMENU,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_PAUSE	videowall/player_vw_test.c	/^	CURRENT_STATUS_PAUSE,$/;"	e	enum:__anon1	file:
+CURRENT_STATUS_PLAY	videowall/player_vw_test.c	/^	CURRENT_STATUS_PLAY,$/;"	e	enum:__anon1	file:
+MAX_STRING_LEN	videowall/player_vw_test.c	27;"	d	file:
+TEST_FILE_SIZE	media_codec_test.c	26;"	d	file:
+VIDEO_DUMP_PATH_PREFIX	videowall/player_vw_test.c	28;"	d	file:
+__interpret_input	videowall/player_vw_test.c	/^static void __interpret_input(char *cmd)$/;"	f	file:	signature:(char *cmd)
+__interpret_main	videowall/player_vw_test.c	/^static void __interpret_main(char *cmd)$/;"	f	file:	signature:(char *cmd)
+__print_menu	videowall/player_vw_test.c	/^static void __print_menu()$/;"	f	file:
+__quit	videowall/player_vw_test.c	/^static void __quit()$/;"	f	file:
+__reset_menu_state	videowall/player_vw_test.c	/^static void __reset_menu_state(void)$/;"	f	file:	signature:(void)
+__timeout_get_current	videowall/player_vw_test.c	/^static gboolean __timeout_get_current(void* data)$/;"	f	file:	signature:(void* data)
+_completed_cb	videowall/player_vw_test.c	/^static void _completed_cb(void *user_data)$/;"	f	file:	signature:(void *user_data)
+_frame_decoded_cb	videowall/player_vw_test.c	/^static void _frame_decoded_cb(unsigned char *data, int size, void *user_data)$/;"	f	file:	signature:(unsigned char *data, int size, void *user_data)
+_get_status	videowall/player_vw_test.c	/^static void _get_status()$/;"	f	file:
+_input	videowall/player_vw_test.c	/^static gboolean _input(GIOChannel *channel)$/;"	f	file:	signature:(GIOChannel *channel)
+_setup_dump	videowall/player_vw_test.c	/^static void _setup_dump()$/;"	f	file:
+file_handle_args	media_codec_test.c	/^extern int file_handle_args (int argc, char ** argv, int flag);$/;"	p	file:	signature:(int argc, char ** argv, int flag)
+file_handle_args	media_codec_test.c	/^int file_handle_args (int argc, char ** argv, int flag)$/;"	f	signature:(int argc, char ** argv, int flag)
+fnp	media_codec_test.c	/^char *fnp;$/;"	v
+g_dump_fd	videowall/player_vw_test.c	/^FILE *g_dump_fd;$/;"	v
+g_loop	videowall/player_vw_test.c	/^GMainLoop *g_loop;$/;"	v
+g_menu_state	videowall/player_vw_test.c	/^int g_menu_state = CURRENT_STATUS_MAINMENU;$/;"	v
+g_player	videowall/player_vw_test.c	/^static vw_player_h g_player;$/;"	v	file:
+g_uri	videowall/player_vw_test.c	/^char g_uri[MAX_STRING_LEN];$/;"	v
+inf	media_codec_test.c	/^	FILE *inf, *outf;$/;"	v
+inf	media_codec_test.c	/^	int inf, outf;$/;"	v
+input_filename	videowall/player_vw_test.c	/^static void input_filename(char *filename)$/;"	f	file:	signature:(char *filename)
+main	media_codec_test.c	/^int main (int argc, char ** argv)$/;"	f	signature:(int argc, char ** argv)
+main	videowall/player_vw_test.c	/^int main(int argc, char *argv[])$/;"	f	signature:(int argc, char *argv[])
+outf	media_codec_test.c	/^	FILE *inf, *outf;$/;"	v
+outf	media_codec_test.c	/^	int inf, outf;$/;"	v
+szInputName	media_codec_test.c	/^char szInputName[255];$/;"	v
+szOutputName	media_codec_test.c	/^char szOutputName[255];$/;"	v
