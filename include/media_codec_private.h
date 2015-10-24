@@ -47,6 +47,8 @@ extern "C" {
 #define MEDIACODEC_NULL_ARG_CHECK(arg)      \
         MEDIACODEC_CHECK_CONDITION(arg != NULL,MEDIACODEC_ERROR_INVALID_PARAMETER,"MEDIACODEC_ERROR_INVALID_PARAMETER")
 
+#define MEDIACODEC_SUPPORT_CHECK(arg)       \
+        MEDIACODEC_CHECK_CONDITION(arg != false, MEDIACODEC_ERROR_NOT_SUPPORTED_ON_DEVICE, "MEDIACODEC_ERROR_NOT_SUPPORTED_ON_DEVICE")
 /**
  * @brief Enumeration of media codec state
  * @since_tizen 2.3
@@ -110,6 +112,10 @@ typedef struct _mediacodec_s {
     void* error_cb_userdata;
     mediacodec_eos_cb eos_cb;
     void* eos_cb_userdata;
+    mediacodec_buffer_status_cb buffer_status_cb;
+    void* buffer_status_cb_userdata;
+    mediacodec_supported_codec_cb supported_codec_cb;
+    void* supported_codec_cb_userdata;
 
 } mediacodec_s;
 

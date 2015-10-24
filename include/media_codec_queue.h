@@ -55,6 +55,8 @@ void mc_async_queue_enable (async_queue_t *async_queue);
 
 void mc_async_queue_flush(async_queue_t *async_queue);
 
+gboolean mc_async_queue_is_empty(async_queue_t *async_queue);
+
 #ifdef __cplusplus
 }
 #endif

@@ -20,4 +20,3 @@ FOREACH(src ${sources})
     ADD_EXECUTABLE(${src_name} ${src})
     TARGET_LINK_LIBRARIES(${src_name} capi-media-codec ${${fw_test}_LDFLAGS})
 ENDFOREACH()
-

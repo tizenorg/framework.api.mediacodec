@@ -27,15 +27,6 @@
 extern "C" {
 #endif
 
-#if 1
-#define MEDIACODEC_FENTER();          LOGI("%s Enter",__FUNCTION__);
-#define MEDIACODEC_FLEAVE();          LOGI("%s Exit",__FUNCTION__);
-#else
-#define MEDIACODEC_FENTER();          LOGD("%s Enter",__FUNCTION__);
-#define MEDIACODEC_FLEAVE();          LOGD("%s Exit",__FUNCTION__);
-#endif
-
-
 typedef enum
 {
     CODEC_RET_SUCCESS         =  0,
@@ -67,15 +58,13 @@ mc_sem_t *mc_sem_new();
 void mc_sem_free(mc_sem_t *sem);
 void mc_sem_down(mc_sem_t *sem);
 void mc_sem_up(mc_sem_t *sem);
+
 void mc_hex_dump(char *desc, void *addr, int len);
 
 #define MC_FREEIF(x) \
 if ( x ) \
     g_free( x ); \
 x = NULL;
-
-
-
 
 #ifdef __cplusplus
 }

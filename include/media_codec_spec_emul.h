@@ -51,38 +51,6 @@ struct _mc_codec_map_t
     mc_codec_type_t type;
 };
 
-static const mc_codec_spec_t spec_emul[] =
-{
-    {MEDIACODEC_H264,  MEDIACODEC_DECODER | MEDIACODEC_SUPPORT_TYPE_SW, MEDIACODEC_PORT_TYPE_GST},
-    {MEDIACODEC_H263,  MEDIACODEC_ENCODER | MEDIACODEC_SUPPORT_TYPE_SW, MEDIACODEC_PORT_TYPE_GST},
-    {MEDIACODEC_AAC,  MEDIACODEC_ENCODER | MEDIACODEC_SUPPORT_TYPE_SW, MEDIACODEC_PORT_TYPE_GST},
-    {MEDIACODEC_AAC,  MEDIACODEC_DECODER | MEDIACODEC_SUPPORT_TYPE_SW, MEDIACODEC_PORT_TYPE_GST},
-    {MEDIACODEC_MP3,  MEDIACODEC_DECODER | MEDIACODEC_SUPPORT_TYPE_SW, MEDIACODEC_PORT_TYPE_GST}
-};
-
-static const mc_codec_map_t encoder_map[] =
-{
-#ifdef ENABLE_FFMPEG_CODEC
-    {MEDIACODEC_H263, SOFTWARE, {"ffenc_h263", "video/x-raw-yuv", MEDIA_FORMAT_H263P }},
-    {MEDIACODEC_AAC,  SOFTWARE, {"ffenc_aac", "audio/x-raw-int", MEDIA_FORMAT_AAC}}
-#else
-    {MEDIACODEC_H263, SOFTWARE, {"maru_h263enc", "video/x-raw-yuv", MEDIA_FORMAT_H263P}},
-    {MEDIACODEC_AAC,  SOFTWARE, {"maru_aacenc", "audio/x-raw-int", MEDIA_FORMAT_AAC}}
-#endif
-};
-
-static const mc_codec_map_t decoder_map[] =
-{
-#ifdef ENABLE_FFMPEG_CODEC
-    {MEDIACODEC_H264, SOFTWARE, {"ffdec_h264", "video/x-h264", MEDIA_FORMAT_I420}},
-    {MEDIACODEC_AAC,  SOFTWARE, {"ffdec_aac", "audio/mpeg", MEDIA_FORMAT_PCM}},
-    {MEDIACODEC_MP3,  SOFTWARE, {"ffdec_mp3", "audio/mpeg", MEDIA_FORMAT_PCM}}
-#else
-    {MEDIACODEC_H264, SOFTWARE, {"maru_h264dec", "video/x-h264", MEDIA_FORMAT_I420}},
-    {MEDIACODEC_AAC,  SOFTWARE, {"maru_aacdec", "audio/mpeg", MEDIA_FORMAT_PCM}},
-    {MEDIACODEC_MP3,  SOFTWARE, {"maru_mp3dec", "audio/mpeg", MEDIA_FORMAT_PCM}}
-#endif
-};
 
 #ifdef __cplusplus
 }

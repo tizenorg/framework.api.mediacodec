@@ -5,16 +5,15 @@ void *mc_aligned_malloc(int size, int alignment)
     unsigned char *pMem;
     unsigned char *tmp;
 
-    if((tmp = (unsigned char *)malloc(size + alignment)) != NULL)
-    {
-        pMem = (unsigned char*)((unsigned int)(tmp + alignment - 1) & (~(unsigned int)(alignment -1)));
+    if ((tmp = (unsigned char *)malloc(size + alignment)) != NULL) {
+        pMem = (unsigned char *)((unsigned int)(tmp + alignment - 1) & (~(unsigned int)(alignment - 1)));
 
-        if(pMem == tmp)
+        if (pMem == tmp)
             pMem += alignment;
 
         *(pMem - 1) = (unsigned int)(pMem - tmp);
 
-        return ((void*) pMem);
+        return ((void *) pMem);
     }
     return NULL;
 }
@@ -23,7 +22,7 @@ void mc_aligned_free(void *mem)
 {
     unsigned char *ptr;
 
-    if(mem == NULL)
+    if (mem == NULL)
         return;
 
     ptr = mem;
@@ -36,9 +35,7 @@ mc_sem_t *mc_sem_new()
 {
     mc_sem_t *sem;
     sem = g_new(mc_sem_t, 1);
-    //sem->cond = g_cond_new();
     g_cond_init(&sem->cond);
-    //sem->mutex = g_mutex_new();
     g_mutex_init(&sem->mutex);
     sem->counter = 0;
 
@@ -47,9 +44,7 @@ mc_sem_t *mc_sem_new()
 
 void mc_sem_free(mc_sem_t *sem)
 {
-    //g_cond_free(sem->cond);
     g_cond_clear(&sem->cond);
-    //g_mutex_free(sem->mutex);
     g_mutex_clear(&sem->mutex);
     g_free(sem);
 }
@@ -58,7 +53,7 @@ void mc_sem_down(mc_sem_t *sem)
 {
     g_mutex_lock(&sem->mutex);
 
-    while(sem->counter == 0)
+    while (sem->counter == 0)
         g_cond_wait(&sem->cond, &sem->mutex);
     sem->counter--;
 
@@ -80,16 +75,14 @@ void mc_hex_dump(char *desc, void *addr, int len)
 {
     int i;
     unsigned char buff[17];
-    unsigned char *pc = (unsigned char*)addr;
+    unsigned char *pc = (unsigned char *)addr;
 
     if (desc != NULL)
         printf("%s:\n", desc);
 
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
 
-        if ((i % 16) == 0)
-        {
+        if ((i % 16) == 0) {
             if (i != 0)
                 printf("  %s\n", buff);
 
@@ -111,4 +104,3 @@ void mc_hex_dump(char *desc, void *addr, int len)
     }
     printf("  %s\n", buff);
 }
-

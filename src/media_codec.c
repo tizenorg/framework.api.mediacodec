@@ -20,6 +20,7 @@
 #include <media_codec.h>
 #include <media_codec_private.h>
 #include <media_codec_port.h>
+#include <system_info.h>
 
 #include <dlog.h>
 
@@ -27,16 +28,19 @@ static gboolean  __mediacodec_empty_buffer_cb(media_packet_h pkt, void *user_dat
 static gboolean __mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data);
 static gboolean __mediacodec_error_cb(mediacodec_error_e error, void *user_data);
 static gboolean __mediacodec_eos_cb(void *user_data);
+static gboolean __mediacodec_supported_codec_cb(mediacodec_codec_type_e codec_type, void *user_data);
+static gboolean __mediacodec_buffer_status_cb(mediacodec_status_e status, void *user_data);
+
 
 /*
 * Internal Implementation
 */
-int __convert_error_code(int code, char* func_name)
+int __convert_error_code(int code, char *func_name)
 {
     int ret = MEDIACODEC_ERROR_INVALID_OPERATION;
-    char* msg = "MEDIACOODEC_INVALID_OPERATION";
-    switch(code)
-    {
+    char *msg = "MEDIACOODEC_INVALID_OPERATION";
+
+    switch (code) {
         case MC_ERROR_NONE:
             ret = MEDIACODEC_ERROR_NONE;
             msg = "MEDIACODEC_ERROR_NONE";
@@ -102,15 +106,9 @@ int __convert_error_code(int code, char* func_name)
     return ret;
 }
 
-bool __mediacodec_state_validate(mediacodec_h mediacodec, mediacodec_state_e threshold)
-{
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
-
-    if(handle->state < threshold)
-        return FALSE;
-    return TRUE;
-}
-
+/*
+ *  Public Implementation
+ */
 
 int mediacodec_create(mediacodec_h *mediacodec)
 {
@@ -118,31 +116,25 @@ int mediacodec_create(mediacodec_h *mediacodec)
     mediacodec_s *handle;
     int ret;
 
-    LOGD ("mediacodec_create..\n");
+    LOGD("mediacodec_create..");
 
-    handle = (mediacodec_s*)malloc( sizeof(mediacodec_s));
-    if (handle != NULL)
-    {
+    handle = (mediacodec_s *)malloc(sizeof(mediacodec_s));
+    if (handle != NULL) {
         memset(handle, 0 , sizeof(mediacodec_s));
-    }
-    else
-    {
+    } else {
         LOGE("MEDIACODEC_ERROR_OUT_OF_MEMORY(0x%08x)", MEDIACODEC_ERROR_OUT_OF_MEMORY);
         return MEDIACODEC_ERROR_OUT_OF_MEMORY;
     }
 
     ret = mc_create(&handle->mc_handle);
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
         LOGE("MEDIACODEC_ERROR_INVALID_OPERATION(0x%08x)", MEDIACODEC_ERROR_INVALID_OPERATION);
         handle->state = MEDIACODEC_STATE_NONE;
         free(handle);
         handle = NULL;
         return MEDIACODEC_ERROR_INVALID_OPERATION;
-    }
-    else
-    {
-        *mediacodec = (mediacodec_h) handle;
+    } else {
+        *mediacodec = (mediacodec_h)handle;
         handle->state = MEDIACODEC_STATE_IDLE;
         LOGD("new handle : %p", *mediacodec);
     }
@@ -152,6 +144,8 @@ int mediacodec_create(mediacodec_h *mediacodec)
     mc_set_fill_buffer_cb(handle->mc_handle, (mediacodec_output_buffer_available_cb)__mediacodec_fill_buffer_cb, handle);
     mc_set_error_cb(handle->mc_handle, (mediacodec_error_cb)__mediacodec_error_cb, handle);
     mc_set_eos_cb(handle->mc_handle, (mediacodec_eos_cb)__mediacodec_eos_cb, handle);
+    mc_set_buffer_status_cb(handle->mc_handle, (mediacodec_buffer_status_cb)__mediacodec_buffer_status_cb, handle);
+    mc_set_supported_codec_cb(handle->mc_handle, (mediacodec_supported_codec_cb)__mediacodec_supported_codec_cb, handle);
 
     return MEDIACODEC_ERROR_NONE;
 
@@ -159,17 +153,15 @@ int mediacodec_create(mediacodec_h *mediacodec)
 
 int mediacodec_destroy(mediacodec_h mediacodec)
 {
-    LOGD ("[%s] Start, handle to destroy : %p", __FUNCTION__, mediacodec);
+    LOGD("[%s] Start, handle to destroy : %p", __FUNCTION__, mediacodec);
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     int ret = mc_destroy(handle->mc_handle);
     if (ret != MEDIACODEC_ERROR_NONE) {
         LOGD("MEDIACODEC_ERROR_INVALID_OPERATION(0x%08x)", MEDIACODEC_ERROR_INVALID_OPERATION);
         return MEDIACODEC_ERROR_INVALID_OPERATION;
-    }
-    else
-    {
+    } else {
         handle->state = MEDIACODEC_STATE_NONE;
         free(handle);
         handle = NULL;
@@ -180,17 +172,14 @@ int mediacodec_destroy(mediacodec_h mediacodec)
 int mediacodec_set_codec(mediacodec_h mediacodec, mediacodec_codec_type_e codec_id, mediacodec_support_type_e flags)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_set_codec(handle->mc_handle, codec_id, flags);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -199,17 +188,14 @@ int mediacodec_set_codec(mediacodec_h mediacodec, mediacodec_codec_type_e codec_
 int mediacodec_set_vdec_info(mediacodec_h mediacodec, int width, int height)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_set_vdec_info(handle->mc_handle, width, height);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -218,17 +204,14 @@ int mediacodec_set_vdec_info(mediacodec_h mediacodec, int width, int height)
 int mediacodec_set_venc_info(mediacodec_h mediacodec, int width, int height, int fps, int target_bits)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_set_venc_info(handle->mc_handle, width, height, fps, target_bits);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -237,17 +220,14 @@ int mediacodec_set_venc_info(mediacodec_h mediacodec, int width, int height, int
 int mediacodec_set_adec_info(mediacodec_h mediacodec, int samplerate, int channel, int bit)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_set_adec_info(handle->mc_handle, samplerate, channel, bit);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -256,17 +236,14 @@ int mediacodec_set_adec_info(mediacodec_h mediacodec, int samplerate, int channe
 int mediacodec_set_aenc_info(mediacodec_h mediacodec, int samplerate, int channel, int bit, int bitrate)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_set_aenc_info(handle->mc_handle, samplerate, channel, bit, bitrate);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -275,17 +252,14 @@ int mediacodec_set_aenc_info(mediacodec_h mediacodec, int samplerate, int channe
 int mediacodec_prepare(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     int ret = mc_prepare(handle->mc_handle);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_READY;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -294,16 +268,13 @@ int mediacodec_prepare(mediacodec_h mediacodec)
 int mediacodec_unprepare(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     int ret = mc_unprepare(handle->mc_handle);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         handle->state = MEDIACODEC_STATE_IDLE;
         return MEDIACODEC_ERROR_NONE;
     }
@@ -312,18 +283,14 @@ int mediacodec_unprepare(mediacodec_h mediacodec)
 int mediacodec_process_input(mediacodec_h mediacodec, media_packet_h inbuf, uint64_t timeOutUs)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_READY);
 
     int ret = mc_process_input(handle->mc_handle, inbuf, timeOutUs);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
-        //handle->state = MEDIACODEC_STATE_EXCUTE;
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         return MEDIACODEC_ERROR_NONE;
     }
 }
@@ -331,26 +298,52 @@ int mediacodec_process_input(mediacodec_h mediacodec, media_packet_h inbuf, uint
 int mediacodec_get_output(mediacodec_h mediacodec, media_packet_h *outbuf, uint64_t timeOutUs)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_READY);
 
     int ret = mc_get_output(handle->mc_handle, outbuf, timeOutUs);
 
-    if (ret != MEDIACODEC_ERROR_NONE)
-    {
-        return __convert_error_code(ret,(char*)__FUNCTION__);
-    }
-    else
-    {
-        //handle->state = MEDIACODEC_STATE_EXCUTE;
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
         return MEDIACODEC_ERROR_NONE;
     }
 }
 
-int mediacodec_set_input_buffer_used_cb(mediacodec_h mediacodec, mediacodec_input_buffer_used_cb callback, void* user_data)
+int mediacodec_flush_buffers(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
+
+    int ret = mc_flush_buffers(handle->mc_handle);
+
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
+        return MEDIACODEC_ERROR_NONE;
+    }
+}
+
+int mediacodec_get_supported_type(mediacodec_h mediacodec, mediacodec_codec_type_e codec_type, bool encoder, int *support_type)
+{
+    MEDIACODEC_INSTANCE_CHECK(mediacodec);
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
+    MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
+
+    int ret = mc_get_supported_type(handle->mc_handle, codec_type, encoder, support_type);
+
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
+        handle->state = MEDIACODEC_STATE_IDLE;
+        return MEDIACODEC_ERROR_NONE;
+    }
+}
+
+int mediacodec_set_input_buffer_used_cb(mediacodec_h mediacodec, mediacodec_input_buffer_used_cb callback, void *user_data)
+{
+    MEDIACODEC_INSTANCE_CHECK(mediacodec);
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     handle->empty_buffer_cb = callback;
@@ -364,7 +357,7 @@ int mediacodec_set_input_buffer_used_cb(mediacodec_h mediacodec, mediacodec_inpu
 int mediacodec_unset_input_buffer_used_cb(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     handle->empty_buffer_cb = NULL;
     handle->empty_buffer_cb_userdata = NULL;
@@ -373,10 +366,10 @@ int mediacodec_unset_input_buffer_used_cb(mediacodec_h mediacodec)
 }
 
 
-int mediacodec_set_output_buffer_available_cb(mediacodec_h mediacodec, mediacodec_output_buffer_available_cb callback, void* user_data)
+int mediacodec_set_output_buffer_available_cb(mediacodec_h mediacodec, mediacodec_output_buffer_available_cb callback, void *user_data)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     handle->fill_buffer_cb = callback;
@@ -391,7 +384,7 @@ int mediacodec_set_output_buffer_available_cb(mediacodec_h mediacodec, mediacode
 int mediacodec_unset_output_buffer_available_cb(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     handle->fill_buffer_cb = NULL;
     handle->fill_buffer_cb_userdata = NULL;
@@ -399,10 +392,10 @@ int mediacodec_unset_output_buffer_available_cb(mediacodec_h mediacodec)
     return MEDIACODEC_ERROR_NONE;
 }
 
-int mediacodec_set_error_cb(mediacodec_h mediacodec, mediacodec_error_cb callback, void* user_data)
+int mediacodec_set_error_cb(mediacodec_h mediacodec, mediacodec_error_cb callback, void *user_data)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     handle->error_cb = callback;
@@ -417,7 +410,7 @@ int mediacodec_set_error_cb(mediacodec_h mediacodec, mediacodec_error_cb callbac
 int mediacodec_unset_error_cb(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     handle->error_cb = NULL;
     handle->error_cb_userdata = NULL;
@@ -425,10 +418,10 @@ int mediacodec_unset_error_cb(mediacodec_h mediacodec)
     return MEDIACODEC_ERROR_NONE;
 }
 
-int mediacodec_set_eos_cb(mediacodec_h mediacodec, mediacodec_eos_cb callback, void* user_data)
+int mediacodec_set_eos_cb(mediacodec_h mediacodec, mediacodec_eos_cb callback, void *user_data)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
     MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
 
     handle->eos_cb = callback;
@@ -443,7 +436,7 @@ int mediacodec_set_eos_cb(mediacodec_h mediacodec, mediacodec_eos_cb callback, v
 int mediacodec_unset_eos_cb(mediacodec_h mediacodec)
 {
     MEDIACODEC_INSTANCE_CHECK(mediacodec);
-    mediacodec_s * handle = (mediacodec_s *) mediacodec;
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
 
     handle->eos_cb = NULL;
     handle->eos_cb_userdata = NULL;
@@ -451,15 +444,61 @@ int mediacodec_unset_eos_cb(mediacodec_h mediacodec)
     return MEDIACODEC_ERROR_NONE;
 }
 
+int mediacodec_set_buffer_status_cb(mediacodec_h mediacodec, mediacodec_buffer_status_cb callback, void *user_data)
+{
+    MEDIACODEC_INSTANCE_CHECK(mediacodec);
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
+    MEDIACODEC_STATE_CHECK(handle, MEDIACODEC_STATE_IDLE);
+
+    handle->buffer_status_cb = callback;
+    handle->buffer_status_cb_userdata = user_data;
+
+    LOGD("set buffer_status_cb(%p)", callback);
+
+    return MEDIACODEC_ERROR_NONE;
+
+}
+
+int mediacodec_unset_buffer_status_cb(mediacodec_h mediacodec)
+{
+    MEDIACODEC_INSTANCE_CHECK(mediacodec);
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
+
+    handle->buffer_status_cb = NULL;
+    handle->buffer_status_cb_userdata = NULL;
+
+    return MEDIACODEC_ERROR_NONE;
+}
+
+int mediacodec_foreach_supported_codec(mediacodec_h mediacodec, mediacodec_supported_codec_cb callback, void *user_data)
+{
+    MEDIACODEC_INSTANCE_CHECK(mediacodec);
+    mediacodec_s *handle = (mediacodec_s *)mediacodec;
+
+    handle->supported_codec_cb = callback;
+    handle->supported_codec_cb_userdata = user_data;
+
+    LOGD("set supported_codec_cb(%p)", callback);
+    int ret = _mediacodec_foreach_supported_codec(handle->mc_handle, callback, handle);
+
+    if (ret != MEDIACODEC_ERROR_NONE) {
+        return __convert_error_code(ret, (char *)__FUNCTION__);
+    } else {
+        return MEDIACODEC_ERROR_NONE;
+    }
+
+    return MEDIACODEC_ERROR_NONE;
+
+}
+
 static gboolean __mediacodec_empty_buffer_cb(media_packet_h pkt, void *user_data)
 {
-    if(user_data == NULL || pkt == NULL)
+    if (user_data == NULL || pkt == NULL)
         return 0;
 
-    mediacodec_s * handle = (mediacodec_s *) user_data;
+    mediacodec_s *handle = (mediacodec_s *)user_data;
 
-    if ( handle->empty_buffer_cb )
-    {
+    if (handle->empty_buffer_cb) {
         ((mediacodec_input_buffer_used_cb)handle->empty_buffer_cb)(pkt, handle->empty_buffer_cb_userdata);
     }
 
@@ -468,13 +507,12 @@ static gboolean __mediacodec_empty_buffer_cb(media_packet_h pkt, void *user_data
 
 static gboolean  __mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 {
-    if(user_data == NULL || pkt == NULL)
+    if (user_data == NULL || pkt == NULL)
         return 0;
 
-    mediacodec_s * handle = (mediacodec_s *) user_data;
+    mediacodec_s *handle = (mediacodec_s *)user_data;
 
-    if ( handle->fill_buffer_cb )
-    {
+    if (handle->fill_buffer_cb) {
         ((mediacodec_output_buffer_available_cb)handle->fill_buffer_cb)(pkt, handle->fill_buffer_cb_userdata);
     }
 
@@ -483,13 +521,12 @@ static gboolean  __mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data
 
 static gboolean __mediacodec_error_cb(mediacodec_error_e error, void *user_data)
 {
-    if(user_data == NULL)
+    if (user_data == NULL)
         return 0;
 
-    mediacodec_s * handle = (mediacodec_s *) user_data;
+    mediacodec_s *handle = (mediacodec_s *)user_data;
 
-    if ( handle->error_cb )
-    {
+    if (handle->error_cb) {
         ((mediacodec_error_cb)handle->error_cb)(error, handle->error_cb_userdata);
     }
 
@@ -498,15 +535,42 @@ static gboolean __mediacodec_error_cb(mediacodec_error_e error, void *user_data)
 
 static gboolean __mediacodec_eos_cb(void *user_data)
 {
-    if(user_data == NULL)
+    if (user_data == NULL)
         return 0;
 
-    mediacodec_s * handle = (mediacodec_s *) user_data;
+    mediacodec_s *handle = (mediacodec_s *)user_data;
 
-    if ( handle->eos_cb )
-    {
+    if (handle->eos_cb) {
         ((mediacodec_eos_cb)handle->eos_cb)(handle->eos_cb_userdata);
     }
 
     return 1;
 }
+
+static gboolean __mediacodec_supported_codec_cb(mediacodec_codec_type_e codec_type, void *user_data)
+{
+    if (user_data == NULL)
+        return 0;
+
+    mediacodec_s *handle = (mediacodec_s *)user_data;
+
+    if (handle->supported_codec_cb) {
+        return ((mediacodec_supported_codec_cb)handle->supported_codec_cb)(codec_type, handle->supported_codec_cb_userdata);
+    }
+    return false;
+}
+
+static gboolean __mediacodec_buffer_status_cb(mediacodec_status_e status, void *user_data)
+{
+    if (user_data == NULL)
+        return 0;
+
+    mediacodec_s *handle = (mediacodec_s *)user_data;
+
+    if (handle->buffer_status_cb) {
+        ((mediacodec_buffer_status_cb)handle->buffer_status_cb)(status, handle->buffer_status_cb_userdata);
+    }
+
+    return 1;
+}
+

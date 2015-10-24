@@ -1,6 +1,6 @@
 Name:       capi-media-codec
 Summary:    A Media Codec library in Tizen Native API
-Version:    0.1.2
+Version:    0.4.2
 Release:    0
 Group:      Multimedia/API
 License:    Apache-2.0
@@ -13,11 +13,16 @@ BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(appcore-efl)
 BuildRequires:  pkgconfig(capi-media-tool)
 BuildRequires:  pkgconfig(libtbm)
-BuildRequires:  pkgconfig(gstreamer-0.10)
-BuildRequires:  pkgconfig(gstreamer-plugins-base-0.10)
-BuildRequires:  pkgconfig(gstreamer-app-0.10)
-BuildRequires:  pkgconfig(libdri2)
-
+BuildRequires:  pkgconfig(gstreamer-1.0)
+BuildRequires:  pkgconfig(gstreamer-plugins-base-1.0)
+BuildRequires:  pkgconfig(gstreamer-app-1.0)
+BuildRequires:  pkgconfig(capi-system-info)
+BuildRequires:  pkgconfig(iniparser)
+%if "%{tizen_target_name}" == "Z130H" || "%{?tizen_target_name}" == "Z300H"
+#!BuildIgnore:  kernel-headers
+BuildConflicts: linux-glibc-devel
+BuildRequires:  kernel-headers-tizen-dev
+%endif
 Requires(post): /sbin/ldconfig
 Requires(post): libprivilege-control
 Requires(postun): /sbin/ldconfig
@@ -27,7 +32,7 @@ Requires(postun): /sbin/ldconfig
 
 %package devel
 Summary:  A Media Player library in Tizen Native API (Development)
-Group:    Multimedia/API
+Group:    TO_BE/FILLED_IN
 Requires: %{name} = %{version}-%{release}
 
 %description devel
@@ -37,6 +42,9 @@ Requires: %{name} = %{version}-%{release}
 
 
 %build
+%if "%{tizen_target_name}" == "Z130H" || "%{?tizen_target_name}" == "Z300H"
+export CFLAGS="$CFLAGS -DTIZEN_PROFILE_LITE"
+%endif
 %if 0%{?sec_build_binary_debug_enable}
 export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
 export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
@@ -56,8 +64,9 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/license
 mkdir -p %{buildroot}/usr/bin
-cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
 cp test/media_codec_test %{buildroot}/usr/bin
+cp LICENSE.APLv2 %{buildroot}/usr/share/license/%{name}
+
 %make_install
 
 %post
