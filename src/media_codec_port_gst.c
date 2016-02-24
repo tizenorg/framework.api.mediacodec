@@ -2328,13 +2328,10 @@ int __mc_output_buffer_finalize_cb(media_packet_h packet, int error_code, void *
         mem = gst_buffer_peek_memory(buffer,n-1);
         gst_memory_map(mem, &map, GST_MAP_READ);
         mm_video_buf = (MMVideoBuffer *)map.data;
-        if (!mm_video_buf) {
-            LOGW("gstbuffer map.data is null");
-        } else {
-            for (i = 0; i < MM_VIDEO_BUFFER_PLANE_MAX; i++) {
-                if (mm_video_buf->handle.bo[i]) {
-                    tbm_bo_unref (mm_video_buf->handle.bo[i]);
-                }
+
+        for (i = 0; i < MM_VIDEO_BUFFER_PLANE_MAX; i++) {
+            if (mm_video_buf->handle.bo[i]) {
+                tbm_bo_unref (mm_video_buf->handle.bo[i]);
             }
         }
         gst_memory_unmap(mem, &map);
